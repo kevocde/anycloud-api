@@ -21,6 +21,7 @@ class EntityPartController extends Controller
     /**
      * Display a listing of the resource
      * @param Request $request
+     * @param Driver $driver
      * @param Entity $entity
      * @return LengthAwarePaginator
      */
