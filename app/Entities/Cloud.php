@@ -2,7 +2,6 @@
 
 namespace App\Entities;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -21,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CloudType cloudType
  * @property EntityPart[] entityParts
  */
-class Cloud extends Model
+class Cloud extends BaseModel
 {
     /**
      * The primary key for the model.

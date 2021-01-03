@@ -2,7 +2,6 @@
 
 namespace App\Entities;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -27,7 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property Entity[] childEntities
  * @property EntityPart[] entityParts
  */
-class Entity extends Model
+class Entity extends BaseModel
 {
     /**
      * The primary key for the model.

@@ -2,7 +2,6 @@
 
 namespace App\Entities;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -19,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string deleted_at
  * @property Entity[] entities
  */
-class Driver extends Model
+class Driver extends BaseModel
 {
     /**
      * The primary key for the model.
