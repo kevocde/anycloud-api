@@ -2,6 +2,9 @@
 
 namespace App\Domain;
 
+use App\Entities\Entity;
+use Illuminate\Pagination\LengthAwarePaginator;
+
 /**
  * Clase de representación para las entidades EntityPart
  * @package App\Domain
@@ -25,5 +28,18 @@ final class EntityPart extends BaseEntity implements IEloquentService
     public static function getEloquentClass(): string
     {
         return \App\Entities\EntityPart::class;
+    }
+
+    /**
+     * Retorna el listado de todos los recursos a partir del modelo relacionado
+     * @param Entity $entity
+     * @param int|null $perPage
+     * @return LengthAwarePaginator
+     */
+    public static function listAllByEntity(Entity $entity, int $perPage = null): LengthAwarePaginator
+    {
+        $perPage = $perPage ?? self::PER_PAGE;
+        $items = call_user_func_array([EntityPart::getEloquentClass(), 'where'], ['entity_id', $entity->entity_id]);
+        return $items->paginate($perPage);
     }
 }
