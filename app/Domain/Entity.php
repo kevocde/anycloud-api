@@ -2,6 +2,9 @@
 
 namespace App\Domain;
 
+use Illuminate\Pagination\LengthAwarePaginator;
+use App\Entities\Driver;
+
 /**
  * Clase de representación para las entidades Entity
  * @package App\Domain
@@ -30,5 +33,18 @@ final class Entity extends BaseEntity implements IEloquentService
     public static function getEloquentClass(): string
     {
         return \App\Entities\Entity::class;
+    }
+
+    /**
+     * Retorna el listado de todos los recursos a partir del modelo relacionado
+     * @param Driver $driver
+     * @param int|null $perPage
+     * @return LengthAwarePaginator
+     */
+    public static function listAllByDriver(Driver $driver, int $perPage = null): LengthAwarePaginator
+    {
+        $perPage = $perPage ?? self::PER_PAGE;
+        $items = call_user_func_array([Entity::getEloquentClass(), 'where'], ['driver_id', $driver->driver_id]);
+        return $items->paginate($perPage);
     }
 }

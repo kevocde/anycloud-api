@@ -2,27 +2,29 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Domain\CloudType;
+use App\Domain\Entity;
+use App\Entities\Driver;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
- * Clase CloudTypeController para el manejo de las solicitudes al api cloud
+ * Clase EntityController para el manejo de las solicitudes al api entidades
  * @package App\Http\Controllers\Api
  * @author kevocde <kevocde@gmail.com>
  * @version 0.0.0
  */
-class CloudTypeController extends BaseController
+class EntityController extends BaseController
 {
     /**
      * Display a listing of the resource
      * @param Request $request
+     * @param Driver $driver
      * @return LengthAwarePaginator
      */
-    public function index(Request $request): LengthAwarePaginator
+    public function index(Request $request, Driver $driver): LengthAwarePaginator
     {
-        return CloudType::listAll($request->get('per-page'));
+        return Entity::listAllByDriver($driver, $request->get('per-page'));
     }
 
     /**

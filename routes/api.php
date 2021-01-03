@@ -19,9 +19,10 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 
 Route::group(['namespace' => 'Api', 'as' => 'api.'], function () {
-    Route::resources([
+    Route::apiResources([
         'drivers' => 'DriverController',
         'clouds' => 'CloudController',
-        'cloud-types' => 'CloudTypeController'
+        'cloud-types' => 'CloudTypeController',
+        'drivers.entities' => 'EntityController'
     ]);
 });

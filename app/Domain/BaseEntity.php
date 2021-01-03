@@ -66,7 +66,7 @@ class BaseEntity
     }
 
     /**
-     * Retorna el listado de todos los drivers
+     * Retorna el listado de todos los recursos a partir del modelo relacionado
      * @param int|null $perPage
      * @return LengthAwarePaginator
      */
