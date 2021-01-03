@@ -2,6 +2,8 @@
 
 namespace App\Domain;
 
+use Illuminate\Pagination\LengthAwarePaginator;
+
 /**
  * Clase de representación para las entidades Cloud
  * @package App\Domain

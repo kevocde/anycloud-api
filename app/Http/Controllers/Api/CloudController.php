@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Domain\Driver;
+use App\Domain\Cloud;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
- * Clase DriverController para la gestión de los drivers
+ * Clase CloudController para el manejo de las solicitudes al api cloud
  * @package App\Http\Controllers\Api
+ * @author kevocde <kevocde@gmail.com>
+ * @version 0.0.0
  */
-class DriverController extends BaseController
+class CloudController extends BaseController
 {
     /**
      * Display a listing of the resource
@@ -20,7 +22,7 @@ class DriverController extends BaseController
      */
     public function index(Request $request): LengthAwarePaginator
     {
-        return Driver::listAll($request->get('per-page'));
+        return Cloud::listAll($request->get('per-page'));
     }
 
     /**

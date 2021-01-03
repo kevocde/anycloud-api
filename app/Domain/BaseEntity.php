@@ -3,6 +3,7 @@
 namespace App\Domain;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Throwable;
 use Exception;
 
@@ -16,12 +17,14 @@ use Exception;
  * @property string updatedAt Momento de ùltima actualización
  * @property string deletedAt Momento de eliminado
  *
- * @method string getEloquentClass Retorna la referencia completa de la clase Eloquent
+ * @method static string getEloquentClass Retorna la referencia completa de la clase Eloquent
  *
  * @see IEloquentService
  */
 class BaseEntity
 {
+    const PER_PAGE = 20;
+
     public $createdAt;
     public $updatedAt;
     public $deletedAt;
@@ -60,5 +63,16 @@ class BaseEntity
             $name = str_replace(' ', '', lcfirst(ucwords(mb_strtolower(str_replace('_', ' ', $key)))));
             if (property_exists($this, $name)) $this->{$name} = $value;
         }
+    }
+
+    /**
+     * Retorna el listado de todos los drivers
+     * @param int|null $perPage
+     * @return LengthAwarePaginator
+     */
+    public static function listAll(int $perPage = null): LengthAwarePaginator
+    {
+        $perPage = $perPage ?? self::PER_PAGE;
+        return call_user_func_array([static::getEloquentClass(), 'paginate'], [$perPage]);
     }
 }
