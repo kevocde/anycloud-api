@@ -75,4 +75,22 @@ class BaseEntity
         $perPage = $perPage ?? self::PER_PAGE;
         return call_user_func_array([static::getEloquentClass(), 'paginate'], [$perPage]);
     }
+
+    /**
+     * Carga por el indentificador del modelo la instancia, adicional de retornar un error en caso de no encontrar el recurso
+     * @param int $id Identificador del recurso
+     * @return BaseEntity
+     *
+     * @throws Throwable
+     */
+    public static function findOrFail(int $id): BaseEntity
+    {
+        try {
+            $instance = call_user_func_array([static::getEloquentClass(), 'findOrFail'], [$id]);
+        } catch (Exception $ex) {
+            throw new Exception('No se han encontrado el recurso solicitado.');
+        }
+
+        return static::createFrom($instance);
+    }
 }

@@ -17,6 +17,8 @@ use App\Entities\Driver;
  * @property string type Tipo de entidad, F para archivo y D para directorio
  * @property string originalName Nombre original de la entidad
  * @property string alias Alias de la entidad
+ *
+ * @method static Entity findOrFail(int $id)
  */
 final class Entity extends BaseEntity implements IEloquentService
 {

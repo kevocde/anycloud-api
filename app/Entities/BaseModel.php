@@ -12,6 +12,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
  * @version 0.0.0
  *
  * @method static LengthAwarePaginator paginate(int $perPage)
+ * @method static Model find(int $id)
+ * @method static Model findOrFail(int $id)
  */
 class BaseModel extends Model
 {

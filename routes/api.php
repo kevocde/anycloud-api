@@ -22,8 +22,12 @@ Route::group(['namespace' => 'Api', 'as' => 'api.'], function () {
     Route::apiResources([
         'clouds' => 'CloudController',
         'cloud-types' => 'CloudTypeController',
-        'drivers' => 'DriverController',
-        'drivers.entities' => 'EntityController',
-        'drivers.entities.entity-parts' => 'EntityPartController'
+        'drivers' => 'DriverController'
     ]);
+
+    Route::get('/drivers/{driver}/files', 'FileController@index');
+    Route::get('/drivers/{driver}/files/{entities}', 'FileController@index')
+        ->where('entities', '^[0-9\/]+$')
+        ->name('files.index')
+    ;
 });
