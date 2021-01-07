@@ -2,6 +2,7 @@
 
 namespace App\Domain;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
@@ -12,6 +13,10 @@ use Illuminate\Pagination\LengthAwarePaginator;
  *
  * @property int driverId Identificador único
  * @property string name Nombre del driver
+ *
+ * @method static Driver createFrom(\App\Entities\Driver $model)
+ * @method \App\Entities\Driver getModel()
+ * @method static Driver findOrFail(int $id)
  */
 final class Driver extends BaseEntity implements IEloquentService
 {

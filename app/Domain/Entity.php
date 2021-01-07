@@ -3,7 +3,6 @@
 namespace App\Domain;
 
 use Illuminate\Pagination\LengthAwarePaginator;
-use App\Entities\Driver;
 
 /**
  * Clase de representación para las entidades Entity
@@ -18,6 +17,8 @@ use App\Entities\Driver;
  * @property string originalName Nombre original de la entidad
  * @property string alias Alias de la entidad
  *
+ * @method static Entity createFrom(\App\Entities\Entity $model)
+ * @method \App\Entities\Entity getModel()
  * @method static Entity findOrFail(int $id)
  */
 final class Entity extends BaseEntity implements IEloquentService
@@ -40,13 +41,19 @@ final class Entity extends BaseEntity implements IEloquentService
     /**
      * Retorna el listado de todos los recursos a partir del modelo relacionado
      * @param Driver $driver
+     * @param Entity|null $parentEntity
      * @param int|null $perPage
      * @return LengthAwarePaginator
      */
-    public static function listAllByDriver(Driver $driver, int $perPage = null): LengthAwarePaginator
+    public static function listAllByDriver(Driver $driver, Entity $parentEntity = null, int $perPage = null): LengthAwarePaginator
     {
         $perPage = $perPage ?? self::PER_PAGE;
-        $items = call_user_func_array([Entity::getEloquentClass(), 'where'], ['driver_id', $driver->driver_id]);
+        $items = call_user_func_array([Entity::getEloquentClass(), 'where'], ['driver_id', $driver->driverId]);
+
+        if (empty($parentEntity)) $items->whereNull('parent_entity_id');
+        else $items->where('parent_entity_id', $parentEntity->entityId);
+
+
         return $items->paginate($perPage);
     }
 }

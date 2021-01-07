@@ -31,6 +31,15 @@ class BaseEntity
     protected $model;
 
     /**
+     * Retorna la instancia del modelo
+     * @return Model
+     */
+    public function getModel(): Model
+    {
+        return $this->model;
+    }
+
+    /**
      * Crea una instancia de la entidad a partir de un modelo eloquent
      * @param Model $model
      * @return BaseEntity

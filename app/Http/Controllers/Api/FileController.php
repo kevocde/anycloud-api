@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domain\Driver;
 use App\Domain\Entity;
-use App\Entities\Driver;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Throwable;
 
 /**
@@ -18,21 +18,21 @@ class FileController extends BaseController
 {
     /**
      * @param Request $request
-     * @param Driver $driver
+     * @param \App\Entities\Driver $driver
      * @param string $entities
-     * @return Response
+     * @return LengthAwarePaginator
      *
      * @throws Throwable
      */
-    public function index(Request $request, Driver $driver, $entities = ''): Response
+    public function index(Request $request, \App\Entities\Driver $driver, $entities = null): LengthAwarePaginator
     {
-        unset($request, $driver);
+        $return = null;
+        unset($request);
+        $driver = Driver::createFrom($driver);
+        $entityIds = explode('/', $entities);
 
-        $entities = explode('/', $entities);
-        $lastEntity = Entity::findOrFail(end($entities));
+        $lastEntity = empty($entities) ? null : Entity::findOrFail(end($entityIds));
 
-        if ($lastEntity->type == Entity::TYPE_DIRECTORY) {
-
-        }
+        return Entity::listAllByDriver($driver, $lastEntity);
     }
 }
