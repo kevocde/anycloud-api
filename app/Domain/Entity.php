@@ -2,7 +2,10 @@
 
 namespace App\Domain;
 
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Throwable;
 
 /**
  * Clase de representación para las entidades Entity
@@ -55,5 +58,35 @@ final class Entity extends BaseEntity implements IEloquentService
 
 
         return $items->paginate($perPage);
+    }
+
+    public static function validateEntityRequest(Request $request): bool
+    {
+        return true;
+    }
+
+    /**
+     * @param Request $request
+     * @param Driver $driver
+     * @param Entity|null $parentEntity
+     * @return Response
+     *
+     * @throws Throwable
+     */
+    public static function createEntity(Request $request, Driver $driver, Entity $parentEntity = null): Response
+    {
+        if (Entity::validateEntityRequest($request)) {
+            $modelInstance = new \App\Entities\Entity([
+                'driver_id' => $driver->driverId,
+                'parent_entity_id' => $parentEntity ? $parentEntity->entityId : null,
+                'type' => $request->post('type', 'D'),
+                'original_name' => $request->post('original_name'),
+                'alias' => null
+            ]);
+            $modelInstance->save();
+            $entity = Entity::createFrom($modelInstance);
+
+            return response($entity->getModel());
+        }
     }
 }

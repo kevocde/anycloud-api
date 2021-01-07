@@ -3,6 +3,7 @@
 namespace App\Entities;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
@@ -17,4 +18,9 @@ use Illuminate\Pagination\LengthAwarePaginator;
  */
 class BaseModel extends Model
 {
+    use SoftDeletes;
+
+    const CREATED_AT = 'created_at';
+    const UPDATED_AT = 'updated_at';
+    const DELETED_AT = 'deleted_at';
 }

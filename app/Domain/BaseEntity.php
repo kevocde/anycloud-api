@@ -68,6 +68,8 @@ class BaseEntity
             ['No es posible cargar los datos de un modelo eloquent diferente al definido para la clase.']
         );
 
+        $this->model = $model;
+
         foreach ($model->getAttributes() as $key => $value) {
             $name = str_replace(' ', '', lcfirst(ucwords(mb_strtolower(str_replace('_', ' ', $key)))));
             if (property_exists($this, $name)) $this->{$name} = $value;

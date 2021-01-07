@@ -25,9 +25,15 @@ Route::group(['namespace' => 'Api', 'as' => 'api.'], function () {
         'drivers' => 'DriverController'
     ]);
 
-    Route::get('/drivers/{driver}/files', 'FileController@index');
-    Route::get('/drivers/{driver}/files/{entities}', 'FileController@index')
+    // Listado recursivo de los archivos
+    Route::get('/drivers/{driver}/files/{entities?}', 'FileController@index')
         ->where('entities', '^[0-9\/]+$')
         ->name('files.index')
+    ;
+
+    // Creación de carpeta o carga de archivo a directorio
+    Route::post('/drivers/{driver}/files/{entities?}', 'FileController@store')
+        ->where('entities', '^[0-9\/]+$')
+        ->name('files.store')
     ;
 });
