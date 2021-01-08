@@ -4,6 +4,8 @@ namespace App\Domain;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Throwable;
@@ -30,12 +32,18 @@ final class Entity extends BaseEntity implements IEloquentService
     const TYPE_FILE = 'F';
     const TYPE_DIRECTORY = 'D';
 
+    /**
+     * @var static Representa el tamaño máximo por el cual se partirá el archivo 32 kBytes
+     */
+    const FILE_PART_SIZE = 1024*32;
+
     public $entityId;
     public $driverId;
     public $parentEntityId;
     public $type;
     public $originalName;
     public $alias;
+    public $entityParts = [];
 
     public static function getEloquentClass(): string
     {
@@ -67,16 +75,28 @@ final class Entity extends BaseEntity implements IEloquentService
 
     /**
      * @param Request $request
+     * @param Driver $driver
+     * @param Entity|null $entity
      * @return \Illuminate\Contracts\Validation\Validator
      */
-    public static function getValidatorCreateEntity(Request $request): \Illuminate\Contracts\Validation\Validator
+    public static function getValidatorCreateEntity(Request $request, Driver $driver, Entity $entity = null): \Illuminate\Contracts\Validation\Validator
     {
         return Validator::make(
             $request->all(),
             [
                 'type' => ['required', Rule::in([Entity::TYPE_FILE, Entity::TYPE_DIRECTORY])],
-                'original_name' => 'required',
-                'alias' => 'max:100'
+                'original_name' => ['required', function ($attribute, $value, $fail) use ($request, $driver, $entity) {
+                    $count = \App\Entities\Entity::where([
+                            'driver_id' => $driver->driverId,
+                            'parent_entity_id' => ($entity) ? $entity->entityId : null,
+                            'original_name' => $request->post('original_name')
+                        ])
+                        ->count()
+                    ;
+                    if ($count > 0) $fail('Ya existe un archivo con este nombre.');
+                }],
+                'alias' => 'max:100',
+                'payload' => 'file'
             ]
         );
     }
@@ -91,7 +111,7 @@ final class Entity extends BaseEntity implements IEloquentService
      */
     public static function createEntity(Request $request, Driver $driver, Entity $parentEntity = null): JsonResponse
     {
-        $validator = Entity::getValidatorCreateEntity($request);
+        $validator = Entity::getValidatorCreateEntity($request, $driver, $parentEntity);
         if ($validator->fails()) {
             $response = response()->json([
                 'type' => 'error',
@@ -104,10 +124,12 @@ final class Entity extends BaseEntity implements IEloquentService
                 'parent_entity_id' => $parentEntity ? $parentEntity->entityId : null,
                 'type' => $request->post('type', 'D'),
                 'original_name' => $request->post('original_name'),
-                'alias' => null
+                'alias' => $request->post('alias')
             ]);
             $modelInstance->save();
             $entity = Entity::createFrom($modelInstance);
+
+            if ($entity->type === Entity::TYPE_FILE) $entity->uploadFile($request->file('payload'));
 
             $response = response()->json([
                 'type' => 'success',
@@ -117,5 +139,49 @@ final class Entity extends BaseEntity implements IEloquentService
         }
 
         return $response;
+    }
+
+    /**
+     * Realiza el almacenado de un archivo de una entidad determinada
+     * @param UploadedFile $file
+     *
+     * @throws Throwable
+     */
+    public function uploadFile(UploadedFile $file)
+    {
+        foreach ($this->partitionFile($file) as $path) {
+            $name = explode('/', $path);
+            $entityPart = new \App\Entities\EntityPart([
+                'name' => end($name),
+                'path' => $path,
+                'entity_id' => $this->entityId,
+                'cloud_id' => 1
+            ]);
+            $entityPart->save();
+            $this->entityParts[] = EntityPart::createFrom($entityPart);
+        }
+    }
+
+    private function partitionFile(UploadedFile $file): array
+    {
+        $FILE_PATH = $file->getRealPath();
+
+        $partsNames = [];
+        $size = filesize($FILE_PATH);
+        $parts = floor($size/Entity::FILE_PART_SIZE);
+        $sizePerFile = $size/$parts;
+
+        $source = fopen($FILE_PATH, 'r');
+        for ($i = 0; $i < $parts; $i ++) {
+            $tmpPath = 'temp/' . str_replace('.' . $file->extension(), '', $file->hashName()) . '-' . ($i+1) . '.part';
+            $dest = fopen(Storage::disk()->path($tmpPath), 'w');
+            $initPos = $i*$sizePerFile;
+            stream_copy_to_stream($source, $dest, $sizePerFile, $initPos);
+            fclose($dest);
+            $partsNames[] = $tmpPath;
+        }
+        fclose($source);
+
+        return $partsNames;
     }
 }
