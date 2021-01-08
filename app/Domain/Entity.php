@@ -2,9 +2,10 @@
 
 namespace App\Domain;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 /**
@@ -46,9 +47,9 @@ final class Entity extends BaseEntity implements IEloquentService
      * @param Driver $driver
      * @param Entity|null $parentEntity
      * @param int|null $perPage
-     * @return LengthAwarePaginator
+     * @return JsonResponse
      */
-    public static function listAllByDriver(Driver $driver, Entity $parentEntity = null, int $perPage = null): LengthAwarePaginator
+    public static function listAllByDriver(Driver $driver, Entity $parentEntity = null, int $perPage = null): JsonResponse
     {
         $perPage = $perPage ?? self::PER_PAGE;
         $items = call_user_func_array([Entity::getEloquentClass(), 'where'], ['driver_id', $driver->driverId]);
@@ -57,25 +58,47 @@ final class Entity extends BaseEntity implements IEloquentService
         else $items->where('parent_entity_id', $parentEntity->entityId);
 
 
-        return $items->paginate($perPage);
+        return response()->json([
+            'type' => 'success',
+            'message' => '',
+            'payload' => $items->paginate($perPage)
+        ]);
     }
 
-    public static function validateEntityRequest(Request $request): bool
+    /**
+     * @param Request $request
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    public static function getValidatorCreateEntity(Request $request): \Illuminate\Contracts\Validation\Validator
     {
-        return true;
+        return Validator::make(
+            $request->all(),
+            [
+                'type' => ['required', Rule::in([Entity::TYPE_FILE, Entity::TYPE_DIRECTORY])],
+                'original_name' => 'required',
+                'alias' => 'max:100'
+            ]
+        );
     }
 
     /**
      * @param Request $request
      * @param Driver $driver
      * @param Entity|null $parentEntity
-     * @return Response
+     * @return JsonResponse
      *
      * @throws Throwable
      */
-    public static function createEntity(Request $request, Driver $driver, Entity $parentEntity = null): Response
+    public static function createEntity(Request $request, Driver $driver, Entity $parentEntity = null): JsonResponse
     {
-        if (Entity::validateEntityRequest($request)) {
+        $validator = Entity::getValidatorCreateEntity($request);
+        if ($validator->fails()) {
+            $response = response()->json([
+                'type' => 'error',
+                'message' => 'Ah ocurrido un error al intentar crear la entidad.',
+                'errors' => $validator->getMessageBag()
+            ], 400);
+        } else {
             $modelInstance = new \App\Entities\Entity([
                 'driver_id' => $driver->driverId,
                 'parent_entity_id' => $parentEntity ? $parentEntity->entityId : null,
@@ -86,7 +109,13 @@ final class Entity extends BaseEntity implements IEloquentService
             $modelInstance->save();
             $entity = Entity::createFrom($modelInstance);
 
-            return response($entity->getModel());
+            $response = response()->json([
+                'type' => 'success',
+                'message' => 'Se ha creado la entidad correctamente',
+                'payload' => $entity->getModel()
+            ], 201);
         }
+
+        return $response;
     }
 }
