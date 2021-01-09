@@ -2,7 +2,6 @@
 
 namespace App\Domain;
 
-use App\Entities\Entity;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
@@ -39,7 +38,21 @@ final class EntityPart extends BaseEntity implements IEloquentService
     public static function listAllByEntity(Entity $entity, int $perPage = null): LengthAwarePaginator
     {
         $perPage = $perPage ?? self::PER_PAGE;
-        $items = call_user_func_array([EntityPart::getEloquentClass(), 'where'], ['entity_id', $entity->entity_id]);
+        $items = call_user_func_array([EntityPart::getEloquentClass(), 'where'], ['entity_id', $entity->entityId]);
         return $items->paginate($perPage);
+    }
+
+    public static function createEntityPart(Cloud $cloud, Entity $entity, string $tempPathFile): \App\Entities\EntityPart
+    {
+        $name = explode('/', $tempPathFile);
+        $instance = new \App\Entities\EntityPart([
+            'cloud_id' => $cloud->cloudId,
+            'entity_id' => $entity->entityId,
+            'name' => end($name),
+            'path' => $tempPathFile
+        ]);
+        $instance->save();
+
+        return $instance;
     }
 }

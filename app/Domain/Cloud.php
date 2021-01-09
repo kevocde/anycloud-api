@@ -2,8 +2,6 @@
 
 namespace App\Domain;
 
-use Illuminate\Pagination\LengthAwarePaginator;
-
 /**
  * Clase de representación para las entidades Cloud
  * @package App\Domain
@@ -11,6 +9,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
  * @version 0.0.0
  *
  * @property int cloudId Identificador único
+ *
+ * @method static Cloud createFrom(\App\Entities\Cloud $model)
  */
 final class Cloud extends BaseEntity implements IEloquentService
 {

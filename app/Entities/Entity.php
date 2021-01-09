@@ -25,6 +25,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property Entity parentEntity
  * @property Entity[] childEntities
  * @property EntityPart[] entityParts
+ *
+ * @method static Entity findOrFail(int $id)
  */
 class Entity extends BaseModel
 {

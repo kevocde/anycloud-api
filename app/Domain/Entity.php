@@ -2,7 +2,7 @@
 
 namespace App\Domain;
 
-use Illuminate\Http\JsonResponse;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -35,7 +35,7 @@ final class Entity extends BaseEntity implements IEloquentService
     /**
      * @var static Representa el tamaño máximo por el cual se partirá el archivo 32 kBytes
      */
-    const FILE_PART_SIZE = 1024*32;
+    const FILE_PART_SIZE = 1024*128;
 
     public $entityId;
     public $driverId;
@@ -53,39 +53,38 @@ final class Entity extends BaseEntity implements IEloquentService
     /**
      * Retorna el listado de todos los recursos a partir del modelo relacionado
      * @param Driver $driver
-     * @param Entity|null $parentEntity
-     * @param int|null $perPage
-     * @return JsonResponse
+     * @param string|null $entities
+     * @param null $perPage
+     * @return LengthAwarePaginator
+     *
+     * @throws Throwable
      */
-    public static function listAllByDriver(Driver $driver, Entity $parentEntity = null, int $perPage = null): JsonResponse
+    public static function listAllByDriver(Driver $driver, $entities = null, $perPage = null): LengthAwarePaginator
     {
         $perPage = $perPage ?? self::PER_PAGE;
-        $items = call_user_func_array([Entity::getEloquentClass(), 'where'], ['driver_id', $driver->driverId]);
 
-        if (empty($parentEntity)) $items->whereNull('parent_entity_id');
-        else $items->where('parent_entity_id', $parentEntity->entityId);
+        $entityIds = explode('/', $entities);
+        $lastEntity = empty($entities) ? null : Entity::findOrFail(end($entityIds));
 
-
-        return response()->json([
-            'type' => 'success',
-            'message' => '',
-            'payload' => $items->paginate($perPage)
+        $items = \App\Entities\Entity::where([
+            'driver_id' => $driver->driverId
         ]);
+
+        if (empty($lastEntity)) $items->whereNull('parent_entity_id');
+        else $items->where('parent_entity_id', $lastEntity->entityId);
+
+        return $items->paginate($perPage);
     }
 
-    /**
-     * @param Request $request
-     * @param Driver $driver
-     * @param Entity|null $entity
-     * @return \Illuminate\Contracts\Validation\Validator
-     */
-    public static function getValidatorCreateEntity(Request $request, Driver $driver, Entity $entity = null): \Illuminate\Contracts\Validation\Validator
+    public static function getValidatorStore(Request $request, Driver $driver, Entity $entity = null): \Illuminate\Contracts\Validation\Validator
     {
         return Validator::make(
             $request->all(),
             [
                 'type' => ['required', Rule::in([Entity::TYPE_FILE, Entity::TYPE_DIRECTORY])],
                 'original_name' => ['required', function ($attribute, $value, $fail) use ($request, $driver, $entity) {
+                    unset($attribute, $value);
+
                     $count = \App\Entities\Entity::where([
                             'driver_id' => $driver->driverId,
                             'parent_entity_id' => ($entity) ? $entity->entityId : null,
@@ -105,64 +104,54 @@ final class Entity extends BaseEntity implements IEloquentService
      * @param Request $request
      * @param Driver $driver
      * @param Entity|null $parentEntity
-     * @return JsonResponse
+     * @return Entity
      *
      * @throws Throwable
      */
-    public static function createEntity(Request $request, Driver $driver, Entity $parentEntity = null): JsonResponse
+    public static function createEntity(Request $request, Driver $driver, Entity $parentEntity = null): Entity
     {
-        $validator = Entity::getValidatorCreateEntity($request, $driver, $parentEntity);
-        if ($validator->fails()) {
-            $response = response()->json([
-                'type' => 'error',
-                'message' => 'Ah ocurrido un error al intentar crear la entidad.',
-                'errors' => $validator->getMessageBag()
-            ], 400);
-        } else {
-            $modelInstance = new \App\Entities\Entity([
-                'driver_id' => $driver->driverId,
-                'parent_entity_id' => $parentEntity ? $parentEntity->entityId : null,
-                'type' => $request->post('type', 'D'),
-                'original_name' => $request->post('original_name'),
-                'alias' => $request->post('alias')
-            ]);
-            $modelInstance->save();
-            $entity = Entity::createFrom($modelInstance);
+        $entityModel = new \App\Entities\Entity([
+            'driver_id' => $driver->driverId,
+            'parent_entity_id' => $parentEntity ? $parentEntity->driverId : null,
+            'type' => $request->post('type', Entity::TYPE_DIRECTORY),
+            'original_name' => $request->post('original_name'),
+            'alias' => $request->post('alias')
+        ]);
+        $entityModel->save();
 
-            if ($entity->type === Entity::TYPE_FILE) $entity->uploadFile($request->file('payload'));
+        $entity = Entity::createFrom($entityModel);
+        if ($entity->type === Entity::TYPE_FILE) $entity->uploadFile($request->file('payload'));
 
-            $response = response()->json([
-                'type' => 'success',
-                'message' => 'Se ha creado la entidad correctamente',
-                'payload' => $entity->getModel()
-            ], 201);
-        }
-
-        return $response;
+        return $entity;
     }
 
     /**
      * Realiza el almacenado de un archivo de una entidad determinada
      * @param UploadedFile $file
+     * @return bool
      *
      * @throws Throwable
      */
-    public function uploadFile(UploadedFile $file)
+    public function uploadFile(UploadedFile $file): bool
     {
-        foreach ($this->partitionFile($file) as $path) {
-            $name = explode('/', $path);
-            $entityPart = new \App\Entities\EntityPart([
-                'name' => end($name),
-                'path' => $path,
-                'entity_id' => $this->entityId,
-                'cloud_id' => 1
-            ]);
-            $entityPart->save();
-            $this->entityParts[] = EntityPart::createFrom($entityPart);
+        $tempPathsFile = $this->uploadTempFile($file);
+        foreach ($tempPathsFile as $path) {
+            foreach (\App\Entities\Cloud::all() as $cloud) {
+                $cloud = Cloud::createFrom($cloud);
+                EntityPart::createEntityPart($cloud, $this, $path);
+            }
         }
+        $this->deleteTempFiles($tempPathsFile);
+
+        return true;
     }
 
-    private function partitionFile(UploadedFile $file): array
+    /**
+     * Crea los archivos temporales en el servidor a partir de un archivo pasado
+     * @param UploadedFile $file
+     * @return array
+     */
+    private function uploadTempFile(UploadedFile $file): array
     {
         $FILE_PATH = $file->getRealPath();
 
@@ -183,5 +172,17 @@ final class Entity extends BaseEntity implements IEloquentService
         fclose($source);
 
         return $partsNames;
+    }
+
+    /**
+     * Elimina los archivos temporales creados a partir de los paths
+     * @param array $paths
+     * @return bool
+     */
+    private function deleteTempFiles(array $paths): bool
+    {
+        foreach ($paths as $path) unlink(Storage::disk()->path($path));
+
+        return true;
     }
 }

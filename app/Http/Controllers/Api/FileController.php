@@ -6,8 +6,6 @@ use App\Domain\Driver;
 use App\Domain\Entity;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Throwable;
 
 /**
@@ -28,15 +26,17 @@ class FileController extends BaseController
     public function index(\App\Entities\Driver $driver, $entities = null): JsonResponse
     {
         $driver = Driver::createFrom($driver);
-        $entityIds = explode('/', $entities);
-        $lastEntity = empty($entities) ? null : Entity::findOrFail(end($entityIds));
 
-        return Entity::listAllByDriver($driver, $lastEntity);
+        return response()->json([
+            'type' => 'success',
+            'message' => '',
+            'payload' => Entity::listAllByDriver($driver, $entities)
+        ]);
     }
 
     /**
      * @param Request $request
-     * @param \App\Entities\Driver $driver
+     * @param Driver $driver
      * @param string|null $entities
      * @return JsonResponse
      *
@@ -47,7 +47,22 @@ class FileController extends BaseController
         $driver = Driver::createFrom($driver);
         $entityIds = explode('/', $entities);
         $lastEntity = empty($entities) ? null : Entity::findOrFail(end($entityIds));
+        $validator = Entity::getValidatorStore($request, $driver, $lastEntity);
 
-        return Entity::createEntity($request, $driver, $lastEntity);
+        if ($validator->fails()) {
+            $response = response()->json([
+                'type' => 'error',
+                'message' => 'Ah ocurrido un error al intentar crear la entidad.',
+                'errors' => $validator->getMessageBag()
+            ], 400);
+        } else {
+            $response = response()->json([
+                'type' => 'success',
+                'message' => 'Se ha creado la entidad correctamente',
+                'payload' => Entity::createEntity($request, $driver, $lastEntity)->getModel()
+            ], 201);
+        }
+
+        return $response;
     }
 }

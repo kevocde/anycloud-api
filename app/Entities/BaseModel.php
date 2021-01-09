@@ -4,6 +4,7 @@ namespace App\Entities;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
@@ -15,6 +16,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
  * @method static LengthAwarePaginator paginate(int $perPage)
  * @method static Model find(int $id)
  * @method static Model findOrFail(int $id)
+ * @method static Builder where($name, $value = null)
+ * @method static Builder whereNull($column)
  */
 class BaseModel extends Model
 {

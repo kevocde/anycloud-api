@@ -2,9 +2,6 @@
 
 namespace App\Domain;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Pagination\LengthAwarePaginator;
-
 /**
  * Clase de representación para las entidades Driver
  * @package App\Domain
